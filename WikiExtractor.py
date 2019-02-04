@@ -179,6 +179,10 @@ options = SimpleNamespace(
     # Minimum expanded text length required to print document
     min_text_length = 0,
     
+    ##
+    # Maximum count of articles (default 0 means unlimited)
+    max_articles = 0,
+    
     # Shared objects holding templates, redirects and cache
     templates = {},
     redirects = {},
@@ -2538,7 +2542,7 @@ def compact(text):
             lev = len(m.group(1)) # header level
             if options.toHTML:
                 page.append("<h%d>%s</h%d>" % (lev, title, lev))
-            headers[lev] = '<section_title>' . title . '</section_title>'
+            headers[lev] = '<section_title>%s</section_title>' % title
             # drop previous headers
             for i in list(headers.keys()):
                 if i > lev:
@@ -2950,6 +2954,8 @@ def process_dump(input_file, template_file, out_file, file_size, file_compress,
             job = (id, revid, title, page, page_num)
             jobs_queue.put(job) # goes to any available extract_process
             page_num += 1
+            if options.max_articles > 0 and page_num >= options.max_articles:
+                break
         page = None             # free memory
 
     input.close()
@@ -3094,6 +3100,8 @@ def main():
                         help="compress output files using bzip")
     groupO.add_argument("--json", action="store_true",
                         help="write output in json format instead of the default one")
+    groupO.add_argument("--max_articles", type=int, default=0,
+                        help="maximum count of articles (default 0 means unlimited)")
 
 
     groupP = parser.add_argument_group('Processing')
@@ -3146,6 +3154,7 @@ def main():
     options.toHTML = args.html
     options.write_json = args.json
     options.print_revision = args.revision
+    options.max_articles = args.max_articles
     options.min_text_length = args.min_text_length
     if args.html:
         options.keepLinks = True
