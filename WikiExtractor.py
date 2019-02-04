@@ -2538,9 +2538,7 @@ def compact(text):
             lev = len(m.group(1)) # header level
             if options.toHTML:
                 page.append("<h%d>%s</h%d>" % (lev, title, lev))
-            if title and title[-1] not in '!?':
-                title += '.'    # terminate sentence.
-            headers[lev] = title
+            headers[lev] = '<section_title>' . title . '</section_title>'
             # drop previous headers
             for i in list(headers.keys()):
                 if i > lev:
