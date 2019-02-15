@@ -591,7 +591,7 @@ class Extractor(object):
         if options.toHTML:
             title_str = '<h1>' + self.title + '</h1>'
         else:
-            title_str = self.title + '\n'
+            title_str = '<doc_title>' + self.title + '</doc_title>\n'
         # https://www.mediawiki.org/wiki/Help:Magic_words
         colon = self.title.find(':')
         if colon != -1:
@@ -785,6 +785,9 @@ class Extractor(object):
         text = re.sub('(\[\(«) ', r'\1', text)
         text = re.sub(r'\n\W+?\n', '\n', text, flags=re.U)  # lines with only punctuations
         text = text.replace(',,', ',').replace(',.', '.')
+        # Split Japanese sentences by Japanese punctuations.
+        text = re.sub('。(?![^「」]*?」|[^『』]*?』|[^（）]*?）)', '。\n', text)
+        text = re.sub('\n+', '\n', text)
         if options.keep_tables:
             # the following regular expressions are used to remove the wikiml chartacters around table strucutures
             # yet keep the content. The order here is imporant so we remove certain markup like {| and then
