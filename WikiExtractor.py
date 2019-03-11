@@ -786,6 +786,7 @@ class Extractor(object):
         text = re.sub(r'\n\W+?\n', '\n', text, flags=re.U)  # lines with only punctuations
         text = text.replace(',,', ',').replace(',.', '.')
         # Split Japanese sentences by Japanese punctuations.
+        text = re.sub('。+', '。', text)
         text = re.sub('。(?![^「」]*?」|[^『』]*?』|[^（）]*?）)', '。\n', text)
         text = re.sub('\n+', '\n', text)
         if options.keep_tables:
