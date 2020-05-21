@@ -70,6 +70,7 @@ import json
 from io import StringIO
 from multiprocessing import Queue, Process, Value, cpu_count
 from timeit import default_timer
+import functools
 
 
 PY2 = sys.version_info[0] == 2
@@ -205,6 +206,8 @@ options = SimpleNamespace(
         'ref', 'references', 'img', 'imagemap', 'source', 'small',
         'sub', 'sup', 'indicator'
     ],
+
+    jp_split_sentences = False,
 )
 
 ##
@@ -649,6 +652,24 @@ class Extractor(object):
         text = self.transform(text)
         text = self.wiki2text(text)
         text = compact(self.clean(text))
+        if options.jp_split_sentences:
+            from ja_sentence_segmenter.common.pipeline import make_pipeline
+            from ja_sentence_segmenter.concatenate.simple_concatenator import concatenate_matching
+            from ja_sentence_segmenter.normalize.neologd_normalizer import normalize
+            from ja_sentence_segmenter.split.simple_splitter import split_newline, split_punctuation
+            split_punc2 = functools.partial(split_punctuation,
+                                            punctuations=r"。!?")
+            concat_tail_no = functools.partial(concatenate_matching,
+                                               former_matching_rule=r"^(?P<result>.+)(の)$",
+                                               remove_former_matched=False)
+            segmenter = make_pipeline(normalize,
+                                      split_newline,
+                                      concat_tail_no,
+                                      split_punc2)
+            text2 = []
+            for line in text:
+                text2 += list(segmenter(line))
+            text = text2
         # from zwChan
         text = [title_str] + text
 
@@ -802,10 +823,6 @@ class Extractor(object):
         text = re.sub('(\[\(«) ', r'\1', text)
         text = re.sub(r'\n\W+?\n', '\n', text, flags=re.U)  # lines with only punctuations
         text = text.replace(',,', ',').replace(',.', '.')
-        # Split Japanese sentences by Japanese punctuations.
-        text = re.sub('。+', '。', text)
-        text = re.sub('。(?![^「」]*?」|[^『』]*?』|[^（）]*?）)', '。\n', text)
-        text = re.sub('\n+', '\n', text)
         if options.keep_tables:
             # the following regular expressions are used to remove the wikiml chartacters around table strucutures
             # yet keep the content. The order here is imporant so we remove certain markup like {| and then
@@ -3162,6 +3179,8 @@ def main():
                         help="comma separated list of elements that will be removed from the article text")
     groupP.add_argument("--keep_tables", action="store_true", default=options.keep_tables,
                         help="Preserve tables in the output article text (default=%(default)s)")
+    groupP.add_argument("--jp_split_sentences", action="store_true", default=options.jp_split_sentences,
+                        help="Split Japanese sentences in the output article text (default=%(default)s)")
     default_process_count = max(1, cpu_count() - 1)
     parser.add_argument("--processes", type=int, default=default_process_count,
                         help="Number of processes to use (default %(default)s)")
@@ -3197,6 +3216,7 @@ def main():
     options.expand_templates = args.no_templates
     options.filter_disambig_pages = args.filter_disambig_pages
     options.keep_tables = args.keep_tables
+    options.jp_split_sentences = args.jp_split_sentences
 
     try:
         power = 'kmg'.find(args.bytes[-1].lower()) + 1
