@@ -668,7 +668,13 @@ class Extractor(object):
                                       split_punc2)
             text2 = []
             for line in text:
-                text2 += list(segmenter(line))
+                # text2 += list(segmenter(line))
+                # ADHOC FIX to remove brackets whose surrounding parts are empty.
+                for sent in segmenter(line):
+                    sent = re.sub('\\(、+', '(', sent)
+                    sent = re.sub('、+\\)', ')', sent)
+                    sent = re.sub('\\(\\)', '', sent)
+                    text2 += [sent]
             text = text2
         # from zwChan
         text = [title_str] + text
